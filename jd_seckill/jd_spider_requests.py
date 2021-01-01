@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- encoding=utf8 -*-
+
 import random
 import time
 import requests
@@ -7,19 +10,22 @@ import os
 import pickle
 
 from lxml import etree
-from jd_logger import logger
-from timer import Timer
-from config import global_config
 from concurrent.futures import ProcessPoolExecutor
-from exception import SKException
-from util import (
+
+from .jd_logger import logger
+from .timer import Timer
+from .config import global_config
+from .exception import SKException
+from .util import (
     parse_json,
     send_wechat,
     wait_some_time,
     response_status,
     save_image,
     open_image,
+    add_bg_for_qr,
     email
+
 )
 
 
@@ -28,7 +34,7 @@ class SpiderSession:
     Session相关操作
     """
     def __init__(self):
-        self.cookies_dir_path = "./cookies/"
+        self.cookies_dir_path = "cookies/"
         self.user_agent = global_config.getRaw('config', 'DEFAULT_USER_AGENT')
 
         self.session = self._init_session()
@@ -161,7 +167,7 @@ class QrLogin:
         url = 'https://qr.m.jd.com/show'
         payload = {
             'appid': 133,
-            'size': 147,
+            'size': 300,
             't': str(int(time.time() * 1000)),
         }
         headers = {
@@ -176,10 +182,10 @@ class QrLogin:
 
         save_image(resp, self.qrcode_img_file)
         logger.info('二维码获取成功，请打开京东APP扫描')
-        open_image(self.qrcode_img_file)
+
+        open_image(add_bg_for_qr(self.qrcode_img_file))
         if global_config.getRaw('messenger', 'email_enable') == 'true':
             email.send('二维码获取成功，请打开京东APP扫描', "<img src='cid:qr_code.png'>", [email.mail_user], 'qr_code.png')
-
         return True
 
     def _get_qrcode_ticket(self):
